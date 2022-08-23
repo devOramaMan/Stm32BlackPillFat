@@ -1,0 +1,291 @@
+/* Code written by Chia Jiun Wei @ 24 Jul 2017
+ * <J.W.Chia@tudelft.nl>
+ 
+ * MB85RS: a library to provide high level APIs to interface  
+ * with the Fujitsu MB85RS. It is possible to use this library in
+ * Energia (the Arduino port for MSP microcontrollers) or in 
+ * other toolchains.
+ 
+ * This file is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License 
+ * version 3, both as published by the Free Software Foundation.
+  
+ */
+ 
+#include "MB85RS.h"
+  
+/**
+ *
+ *   MB85RS class creator function
+ *
+ *   Parameters:
+ *   DSPI &spi             SPI object
+ *	 unsigned char pin	   Chip select GPIO pin
+ *
+ */
+
+ /**
+  * @brief  MB85RS Initialization.
+  * @param  DSPI &spi             SPI object
+  * @param  uint32_t	  Chip select GPIO pin
+  * @retval (void)
+  */
+void MB85RS( DSPI &spi, uint32_t csPort, uint32_t csPin, Device dev):
+        line(spi), CSPort(csPort), CSPin(csPin), device(dev)
+{
+    switch(device)
+    {
+        case CY15B104QN50SXI:
+        case MB85RS1MT:
+            threeByteAddress = true;
+            break;
+
+        default:
+            threeByteAddress = false;
+            break;
+    }
+}
+
+/**
+ *
+ *   Initialize MB85RS
+ *	 Both memory blocks and status register are initialize to be unprotected
+ *
+ *   Parameters
+ *
+ *   Returns
+ *
+ */
+void init()
+{	
+    MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+    MAP_GPIO_setAsOutputPin( CSPort, CSPin );
+    writeProtect();
+}
+
+/**
+ *
+ *   Verify if the MB85RS is present
+ *
+ *   Parameters
+ *
+ *   Returns:
+ *   bool                  true     device found
+ *                         false    device not found
+ *
+ */
+bool ping()
+{
+    unsigned long id = getID();
+
+    switch(device)
+    {
+        case CY15B104QN50SXI:
+            return id == 0x2CC27F;
+
+        case MB85RS256A:
+            return id == 0xFFFFFFFF;
+
+        case MB85RS1MT:
+            return id == 0x047F2703;
+
+        default:
+            return false;
+    }
+}
+
+/**
+ *
+ *   Get device ID
+ *
+ *   Parameters
+ *
+ *   Returns
+ *
+ */
+unsigned long getID()
+{
+    unsigned long ret;
+    MAP_GPIO_setOutputLowOnPin( CSPort, CSPin );
+    line.transfer(RDID);
+    ((unsigned char *)&ret)[3] = line.transfer(0);
+    ((unsigned char *)&ret)[2] = line.transfer(0);
+    ((unsigned char *)&ret)[1] = line.transfer(0);
+    ((unsigned char *)&ret)[0] = line.transfer(0);
+    MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+    return ret;
+}
+
+/**
+ *
+ *   Enable memory writing
+ *
+ *   Parameters
+ *
+ *   Returns
+ *
+ */
+void writeEnable()
+{	
+	MAP_GPIO_setOutputLowOnPin( CSPort, CSPin );
+	line.transfer(WREN); 
+    MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+}
+
+/**
+ *
+ *   Disable memory writing
+ *
+ *   Parameters
+ *
+ *   Returns
+ *
+ */
+void writeProtect()
+{	
+	MAP_GPIO_setOutputLowOnPin( CSPort, CSPin );
+	line.transfer(WRDI); 
+	MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+}
+
+/**
+ *
+ *   Return MB85RS status register
+ *
+ *   Parameters
+ *
+ *	 Returns
+ * 	 unsigned char         status register value
+ */
+unsigned char getStatus()
+{	
+	unsigned char ret;
+	MAP_GPIO_setOutputLowOnPin( CSPort, CSPin );
+	line.transfer(RDSR);
+	ret = line.transfer(0x00);
+	MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+	return ret;
+}
+
+/**
+ *
+ *   Set MB85RS status register
+ *
+ *   Parameters
+ * 	 char val         status register value
+ *
+ * 	 Returns:
+ *
+ */
+void setStatus(char val)
+{
+	writeEnable();
+	MAP_GPIO_setOutputLowOnPin( CSPort, CSPin );
+	line.transfer(WRSR);
+	line.transfer(val);
+	MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+	writeProtect();
+}
+
+/**
+ *
+ *    Reads memory to buffer
+ *
+ *	  Parameters
+ * 	  unsigned int address       start address
+ *    char *buffer				buffer
+ *    unsigned int size			total number of bytes
+ *
+ *    Returns:
+ *
+ */
+void read(unsigned int address, unsigned char *buffer, unsigned int size)
+{  
+	MAP_GPIO_setOutputLowOnPin( CSPort, CSPin );
+	line.transfer(READ);
+	if(threeByteAddress){
+	    line.transfer((char)(address >> 16));
+	}
+    line.transfer((char)(address >> 8));
+    line.transfer((char)(address));
+
+  
+	for (unsigned int i = 0; i < size; i++)
+	{
+		*(buffer + i) = line.transfer(0x00);
+	}
+
+	MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+}
+
+/**
+ *
+ *    Writes memory from buffer
+ *
+ *	  Parameters
+ * 	  unsigned int address       start address
+ *    char *buffer				buffer
+ *    unsigned int size			total number of bytes
+ *
+ *    Returns:
+ *
+ */
+void write(unsigned int address, unsigned char *buffer, unsigned int size)
+{
+	writeEnable();
+	MAP_GPIO_setOutputLowOnPin( CSPort, CSPin );
+	line.transfer(WRITE);
+	if(threeByteAddress){
+        line.transfer((char)(address >> 16));
+    }
+	line.transfer((char)(address >> 8));
+	line.transfer((char)(address));
+
+	for (unsigned int i = 0; i < size; i++)
+	{
+		line.transfer(*(buffer + i));
+	}
+	
+	MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+	writeProtect();
+}
+
+/**
+ *
+ *   Erase the full memory and reset status register
+ *
+ *   Parameters:
+ *
+ *   Returns:
+ *
+ */
+void erase()
+{  
+	setStatus(0x00);
+	writeEnable();
+  
+	MAP_GPIO_setOutputLowOnPin( CSPort, CSPin );
+	line.transfer(WRITE);
+	line.transfer(0x00);
+	line.transfer(0x00);
+  
+	// TODO: get memory size from chip ID, for now size is hardcoded
+	int memSize = 0;
+	switch(device){
+	case Device::MB85RS256A:
+	    memSize = MEM_SIZE_SMALL;
+	    break;
+	case Device::MB85RS1MT:
+	case Device::CY15B104QN50SXI:
+	    memSize = MEM_SIZE_BIG;
+	    break;
+	}
+	for(unsigned int i = 0; i <= memSize; i++)
+	{
+		line.transfer(0x00);
+	}
+	
+	MAP_GPIO_setOutputHighOnPin( CSPort, CSPin );
+
+	writeProtect();
+}

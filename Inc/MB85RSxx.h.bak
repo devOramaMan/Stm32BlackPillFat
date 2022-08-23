@@ -1,0 +1,212 @@
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __MB85RSXX_H
+#define __MB85RSXX_H
+
+#ifdef __cplusplus
+ extern "C" {
+#endif 
+
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "cmsis_os.h"
+#include "spi.h"
+	 
+/** @addtogroup BSP
+  * @{
+  */ 
+
+/** @addtogroup Components
+  * @{
+  */ 
+  
+/** @addtogroup MB85RSXXXX
+  * @{
+  */
+
+/** @defgroup MB85RSXXXX_Exported_Types
+  * @{
+  */
+   
+/**
+  * @}
+  */ 
+
+/** @defgroup MB85RSXXXX_Exported_Constants
+  * @{
+  */
+   
+/** 
+  * @brief  MB85RSXX Configuration  
+  */  
+	
+/* MB85RS4M */
+#define MB85RSXXXX_FLASH_SIZE                  0x0400000 /* 32 MBits => 4MBytes */
+//#define MB85RSXXXX_SECTOR_COUNT                0x40      /* 64 sectors of 64KBytes */
+//#define MB85RSXXXX_SECTOR_SIZE                 0x10000   /* 64 sectors of 64KBytes */
+//#define MB85RSXXXX_SUBSECTOR_COUNT             0x0400    /* 1024 subsectors of 4kBytes */
+//#define MB85RSXXXX_SUBSECTOR_SIZE              0x1000    /* 1024 subsectors of 4kBytes */
+//#define MB85RSXXXX_PAGE_SIZE                   0x100     /* 16384 pages of 256 bytes */
+
+#define MB85RS80  0XEF13
+#define MB85RS16  0XEF14
+#define MB85RS32  0XEF15
+#define MB85RS64  0XEF16
+#define MB85RS128 0XEF17
+
+#define MB85RSXXXX_DUMMY_CYCLES_READ           4
+#define MB85RSXXXX_DUMMY_CYCLES_READ_QUAD      10
+
+#define MB85RSXXXX_BULK_ERASE_MAX_TIME         250000
+#define MB85RSXXXX_SECTOR_ERASE_MAX_TIME       3000
+#define MB85RSXXXX_SUBSECTOR_ERASE_MAX_TIME    800
+#define MB85RSXXXX_TIMEOUT_VALUE 1000
+
+/** 
+  * @brief  MB85RSXX Commands  
+  */  
+
+// Status register
+#define MB85RSXXXX_WPEN       0x80 // Status Register Write Protect
+#define MB85RSXXXX_BP1        0x08 // Block Protect 1
+#define MB85RSXXXX_BP0        0x04 // Block Protect 0
+#define MB85RSXXXX_WEL        0x02 // Write Enable Latch
+
+// OP-CODE
+#define MB85RSXXXX_WREN       0x06 // Set Write Enable Latch   0000 0110B   
+#define MB85RSXXXX_WRDI       0x04 // Reset Write Enable Latch 0000 0100B 
+#define MB85RSXXXX_RDSR       0x05 // Read Status Register     0000 0101B     
+#define MB85RSXXXX_WRSR       0x01 // Write Status Register    0000 0001B    
+#define MB85RSXXXX_READ       0x03 // Read Memory Code         0000 0011B         
+#define MB85RSXXXX_WRITE      0x02 // Write Memory Code        0000 0010B  
+#define MB85RSXXXX_FSTRD      0x0B // Fast Read Memory Code    0000 1011B
+#define MB85RSXXXX_DPD        0xBA // Deep Power Down Mode     1011 1010B     
+#define MB85RSXXXX_HIBERNATE  0xB9 // Hibernate Mode           1011 1001B
+#define MB85RSXXXX_RDID       0x9F // Read Device ID           1001 1111B
+#define MB85RSXXXX_RUID       0x4C // Read Unique ID           0100 1100B
+#define MB85RSXXXX_WRSN       0xC2 // Write Serial Number      1100 0010B
+#define MB85RSXXXX_RDSN       0xC3 // Read Serial Number       1100 0011B
+#define MB85RSXXXX_SSWR       0x42 // Write Special Sector     0100 0010B
+#define MB85RSXXXX_SSRD       0x4B // Read Special Sector      0100 1011B
+#define MB85RSXXXX_FSSRD      0x49 // Fast Read Special Sector 0100 1001B
+
+
+
+#define MB85RSXXXX_MEM_SIZE_SMALL   0x8000	//Memory size
+#define MB85RSXXXX_MEM_SIZE_BIG     0x20000
+
+
+///* rESET oPERATIONS */
+//#DEFINE reset_enable_cmd                     0X66
+//#DEFINE reset_memory_cmd                     0X99
+//
+//#DEFINE enter_qpi_mode_cmd                   0X38
+//#DEFINE exit_qpi_mode_cmd                    0Xff
+//
+///* iDENTIFICATION oPERATIONS */
+//#DEFINE read_id_cmd                          0X90
+//#DEFINE dual_read_id_cmd                     0X92
+//#DEFINE quad_read_id_cmd                     0X94
+//#DEFINE read_jedec_id_cmd                    0X9f
+//
+///* rEAD oPERATIONS */
+//#DEFINE read_cmd                             0X03
+//#DEFINE fast_read_cmd                        0X0b
+//#DEFINE dual_out_fast_read_cmd               0X3b
+//#DEFINE dual_inout_fast_read_cmd             0Xbb
+//#DEFINE quad_out_fast_read_cmd               0X6b
+//#DEFINE quad_inout_fast_read_cmd             0Xeb
+//
+///* wRITE oPERATIONS */
+//#DEFINE write_enable_cmd                     0X06
+//#DEFINE write_disable_cmd                    0X04
+//
+///* rEGISTER oPERATIONS */
+//#DEFINE read_status_reg1_cmd                  0X05
+//#DEFINE read_status_reg2_cmd                  0X35
+//#DEFINE read_status_reg3_cmd                  0X15
+//
+//#DEFINE write_status_reg1_cmd                 0X01
+//#DEFINE write_status_reg2_cmd                 0X31
+//#DEFINE write_status_reg3_cmd                 0X11
+//
+//
+///* pROGRAM oPERATIONS */
+//#DEFINE page_prog_cmd                        0X02
+//#DEFINE quad_input_page_prog_cmd             0X32
+//
+//
+///* eRASE oPERATIONS */
+//#DEFINE sector_erase_cmd                     0X20
+//#DEFINE chip_erase_cmd                       0Xc7
+//
+//#DEFINE prog_erase_resume_cmd                0X7a
+//#DEFINE prog_erase_suspend_cmd               0X75
+//
+//
+///* fLAG sTATUS rEGISTER */
+//#DEFINE mb85rsxxxx_fsr_busy                    ((UINT8_T)0X01)    /*!< BUSY */
+//#DEFINE mb85rsxxxx_fsr_wren                    ((UINT8_T)0X02)    /*!< WRITE ENABLE */
+//#DEFINE mb85rsxxxx_fsr_qe                      ((UINT8_T)0X02)    /*!< QUAD ENABLE */
+
+
+#define MB85RSx_Enable() 			HAL_GPIO_WritePin(F_CS_GPIO_Port, F_CS_Pin, GPIO_PIN_RESET)
+#define MB85RSx_Disable() 		HAL_GPIO_WritePin(F_CS_GPIO_Port, F_CS_Pin, GPIO_PIN_SET)
+
+#define MB85RSx_OK            ((uint8_t)0x00)
+#define MB85RSx_ERROR         ((uint8_t)0x01)
+#define MB85RSx_BUSY          ((uint8_t)0x02)
+#define MB85RSx_TIMEOUT				((uint8_t)0x03)
+
+typedef struct
+{
+	uint32_t FLASH_ID;
+	uint32_t FLASH_SIZE;
+	uint32_t SECTOR_COUNT;
+	uint32_t SECTOR_SIZE;
+	uint32_t SUBSECTOR_COUNT;
+	uint32_t SUBSECTOR_SIZE;
+	uint32_t PAGE_SIZE;
+}MB85RSx_Parameter;
+
+extern MB85RSx_Parameter MB85RSx_Para;
+
+uint8_t MB85RSx_Init(void);
+static void	MB85RSx_Reset(void);
+static uint8_t MB85RSx_GetStatus(void);
+uint8_t MB85RSx_WriteEnable(void);
+void MB85RSx_Read_ID(uint16_t *ID);
+uint8_t MB85RSx_Read(uint8_t* pData, uint32_t ReadAddr, uint32_t Size);
+uint8_t MB85RSx_Write(uint8_t* pData, uint32_t WriteAddr, uint32_t Size);
+uint8_t MB85RSx_Erase_Block(uint32_t Address);
+uint8_t MB85RSx_Erase_Chip(void);
+
+uint8_t MB85RSx_Get_Parameter(MB85RSx_Parameter *Para);
+/**
+  * @}
+  */
+  
+/** @defgroup MB85RSXXXX_Exported_Functions
+  * @{
+  */ 
+/**
+  * @}
+  */ 
+      
+/**
+  * @}
+  */ 
+
+/**
+  * @}
+  */ 
+
+/**
+  * @}
+  */
+  
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __MB85RSx_H */
+
